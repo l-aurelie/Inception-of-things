@@ -41,7 +41,7 @@ echo "setup the master k3s node"
 curl -sfL https://get.k3s.io | sh -s - --docker
 
 echo "allow port on firewall"
-sudo ufw allow 6443/tcp
+sudo ufw allow 6443/
 sudo ufw allow 443/tcp
 
 # echo "install k3s on workers node and connect them to master"
