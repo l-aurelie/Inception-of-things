@@ -8,3 +8,11 @@ spec:
     image: nginx:1.14.2
     ports:
     - containerPort: 80
+    volumeMounts:
+    - mountPath: /usr/share/nginx/html
+      name: app3-volume
+  volumes:
+  - name: app3-volume
+    hostPath:
+      # directory location on host
+      path: /IOT/app-volumes/app3

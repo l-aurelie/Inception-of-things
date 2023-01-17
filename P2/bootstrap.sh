@@ -14,6 +14,11 @@ export INSTALL_K3S_EXEC="--write-kubeconfig-mode=644"
 curl -fL https://get.k3s.io  | sed "s/sourcex/source/g" | K3S_TOKEN=${MYSECRET} \
     sh -s - --docker #--disable traefik server 
 
+#echo "->Running pods"
+#kubectl apply -f /IOT/pods/app1.yaml 
+#kubectl apply -f /IOT/pods/app2.yaml 
+#kubectl apply -f /IOT/pods/app3.yaml 
+
 echo "->Installation finished!"
 
 #if [ ! -f ~/.first_boot ]; then
