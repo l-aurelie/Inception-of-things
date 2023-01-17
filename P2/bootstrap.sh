@@ -16,8 +16,8 @@ curl -fL https://get.k3s.io  | sed "s/sourcex/source/g" | K3S_TOKEN=${MYSECRET} 
 
 echo "->Installation finished!"
 
-if [ ! -f ~/.first_boot ]; then
-	touch ~/.first_boot
-	echo "-> Rebooting to finish install"
-	sudo reboot
-fi
+#if [ ! -f ~/.first_boot ]; then
+#	touch ~/.first_boot
+#	echo "-> Rebooting to finish install"
+#	sudo reboot
+#fi

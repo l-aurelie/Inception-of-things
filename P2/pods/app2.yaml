@@ -1,9 +1,19 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: influxdb
+  name: app2
 spec:
-  hostNetwork: true
   containers:
-    - name: influxdb
-      image: influxdb
+  - name: app2
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80
+#apiVersion: v1
+#kind: Pod
+#metadata:
+#  name: influxdb
+#spec:
+#  hostNetwork: true
+#  containers:
+#    - name: influxdb
+#      image: influxdb
