@@ -1,0 +1,20 @@
+#this version is working
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app1
+spec:
+  #hostNetwork: true
+  containers:
+  - name: app1
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - mountPath: /usr/share/nginx/html
+      name: app1-volume
+  volumes:
+  - name: app1-volume
+    hostPath:
+      # directory location on host
+      path: /IOT/app-volumes/app1
