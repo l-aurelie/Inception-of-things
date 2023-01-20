@@ -1,28 +1,22 @@
 #!/bin/bash
-IP_MASTER=192.168.56.110
-
-echo "=== Installing docker"
-sudo apk add docker
-sudo addgroup vagrant docker
-sudo rc-update add docker boot
 
 echo "=== Installing k3s"
-echo "Setup the master k3s node"
+echo "Setup the k3s node"
 
 MYSECRET=iambatman
-export INSTALL_K3S_EXEC="--write-kubeconfig-mode=644"
+export INSTALL_K3S_EXEC="--write-kubeconfig-mode=644 --node-ip=192.168.56.110"
 curl -fL https://get.k3s.io  | sed "s/sourcex/source/g" | K3S_TOKEN=${MYSECRET} \
-    sh -s - --docker #--disable traefik server 
+    sh -s - 
+while [ ! -e /var/lib/rancher/k3s/server/token ]
+do
+    sleep 1
+done
+sleep 15
 
-#echo "->Running pods"
-#kubectl apply -f /IOT/pods/app1.yaml 
-#kubectl apply -f /IOT/pods/app2.yaml 
-#kubectl apply -f /IOT/pods/app3.yaml 
+echo "Deploy pods, services and ingress "
+kubectl apply -f /IOT/pods/app1-deployment.yaml
+kubectl apply -f /IOT/pods/app2-deployment.yaml
+kubectl apply -f /IOT/pods/app3-deployment.yaml
+kubectl apply -f /IOT/pods/ingress.yaml
 
 echo "->Installation finished!"
-
-#if [ ! -f ~/.first_boot ]; then
-#	touch ~/.first_boot
-#	echo "-> Rebooting to finish install"
-#	sudo reboot
-#fi
