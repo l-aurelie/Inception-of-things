@@ -27,6 +27,8 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plu
 
 sudo groupadd docker
 sudo usermod -aG docker ${USER}
+sudo su -l ${USER}
+
 echo "###Docker installed successfully"
 
 echo "###Installing k3d"
@@ -41,4 +43,7 @@ sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 echo "->Create k3d cluster"
 k3d cluster create cluster-argocd
 
-reboot
+echo "###Installing argcd"
+wget https://github.com/argoproj/argo-cd/raw/v1.6.2/manifests/install.yaml
+
+#cat << EOF > install.yaml
