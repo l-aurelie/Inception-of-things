@@ -44,6 +44,24 @@ echo "->Create k3d cluster"
 k3d cluster create cluster-argocd
 
 echo "###Installing argcd"
-wget https://github.com/argoproj/argo-cd/raw/v1.6.2/manifests/install.yaml
+kubectl create namespace argocd
+# kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.3.0-rc5/manifests/ha/install.yaml
 
-#cat << EOF > install.yaml
+echo "##Download argocd CLI"
+sudo curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+sudo rm argocd-linux-amd64
+
+echo "##Log in to argocd server"
+export ARGOCD_OPTS='--port-forward-namespace argocd'
+argocd login 172.18.0.3 --insecure --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo)
+argocd account update-password
+
+kubectl config set-context --current --namespace=argocd
+
+echo "##To connect to the service without exposing it / connect with localhost:8080"
+#kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+
+
