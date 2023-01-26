@@ -11,8 +11,10 @@ sudo apt-get install -y \
     lsb-release
 
 sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
+if [ ! -f /etc/apt/keyrings/docker.gpg ]
+then
+	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+fi
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
@@ -21,12 +23,10 @@ echo "->Installing docker engine"
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
 sudo apt-get update
 
-
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
-sudo groupadd docker
 sudo usermod -aG docker ${USER}
-sudo su -l ${USER}
+newgrp docker
 
 echo "###Docker installed successfully"
 
@@ -60,7 +60,7 @@ kubectl apply -n dev -f /media/sf_P3/ingress.yaml
 
 echo "##To connect to the service without exposing it / connect with localhost:8080"
 export ARGOCD_OPTS='--port-forward-namespace argocd'
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+kubectl port-forward svc/argocd-server -n argocd 8080:443 &
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 # argocd login localhost:8080 --insecure --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo)
 # argocd account update-password
