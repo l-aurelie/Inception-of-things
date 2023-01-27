@@ -1,33 +1,14 @@
+IP_SERVER="192.168.56.110"
+
 sudo apk update
 apk add --update docker openrc
 service docker start
-# sudo apt-get remove docker docker-engine docker.io containerd runc
-
-# echo "###Installing Docker"
-# echo"->Setup docker repo"
-# sudo apt-get install -y \
-#     ca-certificates \
-#     curl \
-#     gnupg \
-#     lsb-release
-
-# sudo mkdir -p /etc/apt/keyrings
-# if [ ! -f /etc/apt/keyrings/docker.gpg ]
-# then
-# 	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-# fi
-
-# echo \
-#   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-#   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 echo "###Installing k3d"
 curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 
 echo "###Installing kubectl"
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-# curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
-# echo "$(cat kubectl.sha256) kubectl" | sha256sum --check
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
 echo "##Download argocd CLI"
@@ -36,32 +17,33 @@ sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
 sudo rm argocd-linux-amd64
 
 echo "->Create k3d cluster"
-sudo k3d cluster create argocd --api-port 127.0.0.1:6445 --port '8888:80@loadbalancer'
+sudo k3d cluster create argocd
 
 sleep 20
 
-echo "==> Creating namespace argocd"
+echo "==> Creating namespaces"
 sudo kubectl create namespace argocd
-sudo kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.3.0-rc5/manifests/ha/install.yaml
-
-sleep 20
-
-echo "===> Deploy will's app on dev namespace"
 sudo kubectl create namespace dev
+
+
+echo "===> Deploy will's app "
+sudo kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.3.0-rc5/manifests/ha/install.yaml
 sudo kubectl apply -n argocd -f /IOT/argocd.yaml
 sudo kubectl apply -n dev -f /IOT/ingress.yaml
 
-echo "##To connect to the service without exposing it / connect with localhost:8080"
+# while [[ $(kubectl -n dev get pods -l app=app-wil42-argocd -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]];
+#     do echo "waiting for pod" && sleep 1;
+# done
+# while [[ $(kubectl -n argocd get pods -l app=app-wil42-argocd -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]];
+#     do echo "waiting for pod" && sleep 1;
+# done
+
+sleep 80
+
+echo "##Forwarding port to access service from outside : connect with 192.168.56.110:8080"
 export ARGOCD_OPTS='--port-forward-namespace argocd'
-sudo kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
-sudo kubectl port-forward svc/argocd-server -n argocd 8080:443 
 
-# echo "->Installing docker engine"
-# sudo chmod a+r /etc/apt/keyrings/docker.gpg
-# sudo apt-get update
+echo -en "\033[36m      PASSWORD=="; sudo kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+echo -en "\033[0m"
+sudo kubectl port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8080:443 
 
-# sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# sudo usermod -aG docker ${USER}
-# # sudo su -l ${USER}
-# newgrp docker
