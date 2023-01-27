@@ -1,0 +1,14 @@
+
+Vagrant.configure("2") do |config|
+   config.vm.synced_folder ".", "/IOT"
+   config.vm.box = "generic/alpine317"
+   config.vm.hostname = "Bonus"
+   config.vm.network :private_network, ip: "192.168.56.110"
+   config.vm.provision :shell, path: "scripts/install.sh"
+   config.vm.provider "virtualbox" do |vb|
+      vb.customize ["modifyvm", :id, "--memory", 4096]
+      vb.customize ["modifyvm", :id, "--cpus", 6]
+      vb.name = machine = "bonus"
+      end
+   end
+
