@@ -24,10 +24,10 @@ echo "->Create k3d cluster"
 k3d cluster create argocd --port '8888:80@loadbalancer'
 
 echo "Install gitlab "
-kubectl create namespace gitlab
-helm repo add gitlab https://charts.gitlab.io/
-helm repo update
-helm upgrade --install -n gitlab gitlab gitlab/gitlab
+sudo kubectl create namespace gitlab
+sudo helm repo add gitlab https://charts.gitlab.io/
+sudo helm repo update
+sudo helm upgrade --install -n gitlab gitlab gitlab/gitlab --set global.hosts.domain=192.168.56.110.nip.io --set global.hosts.externalIP=192.168.56.110 --set certmanager-issuer.email=email@example.com
 
 #-f https://gitlab.com/gitlab-org/charts/gitlab/-/blob/master/examples/values-minikube-minimum.yaml
 
