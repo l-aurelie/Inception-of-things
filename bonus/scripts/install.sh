@@ -27,10 +27,21 @@ echo "Install gitlab "
 sudo kubectl create namespace gitlab
 sudo helm repo add gitlab https://charts.gitlab.io/
 sudo helm repo update
+#sudo helm upgrade --install  -n gitlab gitlab gitlab/gitlab \
+#--set global.hosts.domain=192.168.56.110.nip.io --set global.hosts.externalIP=192.168.56.110 --set certmanager-issuer.email=email@example.com 2>/dev/null
+
 sudo helm upgrade --install gitlab gitlab/gitlab \
-  -n gitlab \
-  -f https://gitlab.com/gitlab-org/charts/gitlab/raw/master/examples/values-minikube-minimum.yaml \
-  --set global.hosts.domain=192.168.56.110.nip.io --set global.hosts.externalIP=192.168.56.110 --set certmanager-issuer.email=email@example.com 2>/dev/null
+    -n gitlab \
+    -f https://gitlab.com/gitlab-org/charts/gitlab/raw/master/examples/values-minikube-minimum.yaml \
+    --set global.hosts.domain=192.168.56.110.nip.io --set global.hosts.externalIP=192.168.56.110 --set certmanager-issuer.email=email@example.com 2>/dev/null
+
+sudo kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -ojsonpath={.data.password} | base64 -d ; echo
+
+#     while [[ $(kubectl get pods -n gitlab -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; \
+#    do echo "[GITLAB] Waiting for pods to be ready..." && sleep 10;
+#done
+sudo kubectl wait --for=condition=complete -n gitlab --timeout=600s job/gitlab-migrations-1
+sudo kubectl port-forward --address 0.0.0.0 svc/gitlab-webservice-default -n gitlab 8585:8181
 
 # echo "==> Creating namespaces
 # sudo kubectl create namespace argocd
