@@ -1,69 +1,51 @@
-sudo apk update
-apk add --update docker openrc
+echo "### Installing dependencies"
+apk update
+apk add --update docker openrc git
 service docker start
 
 echo "### Installing k3d"
 curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 
 echo "### Installing kubectl"
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-
-echo "### Download argocd CLI"
-sudo curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-sudo rm argocd-linux-amd64
-
-echo "### Installing git"
-sudo apk add git
+curl -L https://storage.googleapis.com/kubernetes-release/release/v1.25.0/bin/linux/amd64/kubectl > /tmp/kubectl
+install /tmp/kubectl /usr/local/bin/kubectl
 
 echo "### Install helm "
 bash /IOT/scripts/get_helm.sh
 
-echo "->Create k3d cluster"
+echo "==> Create k3d cluster"
 k3d cluster create argocd --port '8888:80@loadbalancer'
+mkdir -p /home/vagrant/.kube && cp /root/.kube/config /home/vagrant/.kube/config && chown vagrant /home/vagrant/.kube/config
 
-echo "Install gitlab "
-sudo kubectl create namespace gitlab
-sudo helm repo add gitlab https://charts.gitlab.io/
-sudo helm repo update
-#sudo helm upgrade --install  -n gitlab gitlab gitlab/gitlab \
-#--set global.hosts.domain=192.168.56.110.nip.io --set global.hosts.externalIP=192.168.56.110 --set certmanager-issuer.email=email@example.com 2>/dev/null
+echo "Download argocd CLI"
+curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+rm argocd-linux-amd64
 
-sudo helm upgrade --install gitlab gitlab/gitlab \
-    -n gitlab \
-    -f https://gitlab.com/gitlab-org/charts/gitlab/raw/master/examples/values-minikube-minimum.yaml \
-    --set global.hosts.domain=192.168.56.110.nip.io --set global.hosts.externalIP=192.168.56.110 --set certmanager-issuer.email=email@example.com 2>/dev/null
+echo "### Installing argocd "
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.3.0-rc5/manifests/ha/install.yaml
 
-sudo kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -ojsonpath={.data.password} | base64 -d ; echo
+echo "### Install gitlab "
+kubectl create namespace gitlab
+helm repo add gitlab https://charts.gitlab.io/
+helm repo update
+helm upgrade --install -f /IOT/confs/gitlab-minimum.yaml -n gitlab gitlab gitlab/gitlab
 
-#     while [[ $(kubectl get pods -n gitlab -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; \
-#    do echo "[GITLAB] Waiting for pods to be ready..." && sleep 10;
-#done
-sudo kubectl wait --for=condition=complete -n gitlab --timeout=600s job/gitlab-migrations-1
-sudo kubectl port-forward --address 0.0.0.0 svc/gitlab-webservice-default -n gitlab 8585:8181
+echo " ==> Waiting for gitlab pods to be ready "
+kubectl wait --for=condition=available deployments --all -n gitlab --timeout=800s
 
-# echo "==> Creating namespaces
-# sudo kubectl create namespace argocd
-# sudo kubectl create namespace dev
 
-# sleep 40
+## sleep 40
 
-# echo "===> Deploy will's app "
-# sudo kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.3.0-rc5/manifests/ha/install.yaml
-# sudo kubectl apply -n argocd -f /IOT/confs/argocd.yaml
-# sudo kubectl apply -n dev -f /IOT/confs/ingress.yaml
-while [[ $(kubectl get pods -n dev -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; \
-    do echo "[DEV] Waiting for pods to be ready..." && sleep 10;
-done
+## echo "===> Deploy will's app "
+## sudo kubectl apply -n argocd -f /IOT/confs/argocd.yaml
+## sudo kubectl apply -n dev -f /IOT/confs/ingress.yaml
 
-echo "Adding "
+echo "\033[36m      ARGOCD_PASSWORD:" ; sudo kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+echo "				GITLAB_PASSWORD:" ; sudo kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -ojsonpath={.data.password} | base64 -d ; echo
 
-echo "##Forwarding port to access service from outside : connect with 192.168.56.110:8080"
-export ARGOCD_OPTS='--port-forward-namespace argocd'
-
-echo -en "\033[36m      ARGOCD_PASSWORD: "; sudo kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
-echo -en "\033[36m      GITLAB_PASSWORD: "; sudo kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -ojsonpath={.data.password} | base64 -d ; echo
-echo -en "\033[0m"
-sudo kubectl port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8080:443 | sudo kubectl port-forward --address 0.0.0.0 gitlab-webservice-default-5c96966546-prltr -n gitlab 8585:8181
-
+echo "Forwarding port "
+sudo kubectl port-forward --address 0.0.0.0 svc/gitlab-webservice-default -n gitlab 8585:8181 | sudo kubectl port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8282:443
+sudo kubectl apply -n argocd -f /IOT/confs/argocd.yaml
+## sudo kubectl apply -n dev -f /IOT/confs/deployment.yaml

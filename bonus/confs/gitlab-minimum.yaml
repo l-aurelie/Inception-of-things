@@ -7,12 +7,14 @@
 
 # Minimal settings
 global:
+  edition: "ce"
   ingress:
     configureCertmanager: false
     class: "nginx"
   hosts:
-    domain: 192.168.56.110.nip.io
+    domain: gitlab.ldes-cou.com
     externalIP: 192.168.56.110
+    https: false
   # Disable Rails bootsnap cache (temporary)
   rails:
     bootsnap:
@@ -34,6 +36,7 @@ gitlab-runner:
   install: false
 # Reduce replica counts, reducing CPU & memory requirements
 gitlab:
+  https: false
   webservice:
     minReplicas: 1
     maxReplicas: 1
@@ -52,4 +55,3 @@ registry:
   hpa:
     minReplicas: 1
     maxReplicas: 1
-
