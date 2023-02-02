@@ -9,7 +9,7 @@ curl -L https://storage.googleapis.com/kubernetes-release/release/v1.25.0/bin/li
 install /tmp/kubectl /usr/local/bin/kubectl
 
 echo "==> Creating k3d cluster"
-k3d cluster create bonus --port 8080:80@loadbalancer --port 8888:8888@loadbalancer
+k3d cluster create bonus --port 8888:80@loadbalancer
 echo "-> Adding credentials to user"
 mkdir -p /home/vagrant/.kube && cp /root/.kube/config /home/vagrant/.kube/config && chown vagrant /home/vagrant/.kube/config
 
@@ -48,18 +48,19 @@ while [ $waiting_repo != 0 ] ; do
     git push http://root:${password}@192.168.56.110:8585/root/app-wil42.git
     waiting_repo=$?
     echo $waiting_repo
-    sleep 7
     if [ $waiting_repo != 0 ] ; then
         echo "Please connect to gitlab at 192.168.56.110:8585 as root and create repo <app-wil42> in namespace <root>"
     else
         echo "==> Confs for deployment succesfully pushed on gitlab"
     fi
+    sleep 7
 done
 
 sleep 50
 
 echo "==> Apply argo cd conf"
 sudo kubectl apply -n argocd -f /IOT/confs/argocd.yaml
+sudo kubectl apply -n gitlab -f /IOT/confs/ingress.yaml
 
-echo "==> You can connect to gitlab 192.168.56.110:8282 as root on your browser"
+echo "==> You can connect to gitlab 192.168.56.110:8585 as root on your browser"
 echo "==> You can connect to argocd 192.168.56.110:8282 as admin on your browser"
