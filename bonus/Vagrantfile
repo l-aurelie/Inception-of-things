@@ -5,10 +5,11 @@ Vagrant.configure("2") do |config|
    config.vm.hostname = "Bonus"
    config.vm.network :private_network, ip: "192.168.56.110"
    config.vm.provision :shell, path: "scripts/install.sh"
+   #config.vm.provision :shell, path: "scripts/deploy.sh", privileged: false
    config.vm.provider "virtualbox" do |vb|
       vb.customize ["modifyvm", :id, "--memory", 12288]
       vb.customize ["modifyvm", :id, "--cpus", 12]
-      vb.name = machine = "bonus"
+      vb.name = machine = "bonus2"
       end
    end
 

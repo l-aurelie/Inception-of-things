@@ -1,51 +1,65 @@
 echo "### Installing dependencies"
-apk update
-apk add --update docker openrc git
+apk add git htop
+apk add helm docker openrc
 service docker start
-
-echo "### Installing k3d"
+echo "### Installing helm and k3d"
+apk add helm
 curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
-
-echo "### Installing kubectl"
 curl -L https://storage.googleapis.com/kubernetes-release/release/v1.25.0/bin/linux/amd64/kubectl > /tmp/kubectl
 install /tmp/kubectl /usr/local/bin/kubectl
 
-echo "### Install helm "
-bash /IOT/scripts/get_helm.sh
-
-echo "==> Create k3d cluster"
-k3d cluster create argocd --port '8888:80@loadbalancer'
+echo "==> Creating k3d cluster"
+k3d cluster create bonus --port 8080:80@loadbalancer --port 8888:8888@loadbalancer
+echo "-> Adding credentials to user"
 mkdir -p /home/vagrant/.kube && cp /root/.kube/config /home/vagrant/.kube/config && chown vagrant /home/vagrant/.kube/config
 
-echo "Download argocd CLI"
-curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-rm argocd-linux-amd64
+echo "### Installing gitlab "
+sudo kubectl create namespace gitlab
+sudo helm repo add gitlab https://charts.gitlab.io/
+sudo helm install -f /IOT/confs/gitlab-minimum.yaml -n gitlab gitlab gitlab/gitlab
 
 echo "### Installing argocd "
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.3.0-rc5/manifests/ha/install.yaml
-
-echo "### Install gitlab "
-kubectl create namespace gitlab
-helm repo add gitlab https://charts.gitlab.io/
-helm repo update
-helm upgrade --install -f /IOT/confs/gitlab-minimum.yaml -n gitlab gitlab gitlab/gitlab
+sudo kubectl create namespace argocd
+sudo kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.3.0-rc5/manifests/ha/install.yaml
 
 echo " ==> Waiting for gitlab pods to be ready "
-kubectl wait --for=condition=available deployments --all -n gitlab --timeout=800s
+sudo kubectl wait --for=condition=available deployments --all -n gitlab --timeout=800s
 
+echo " ==> Init git repository"
+cd /IOT/confs
+git init
+git add deployment.yaml
+git commit -m "app conf"
+git remote add origin "http://192.168.56.110:8585/root/app-wil42.git"
 
-## sleep 40
-
-## echo "===> Deploy will's app "
-## sudo kubectl apply -n argocd -f /IOT/confs/argocd.yaml
-## sudo kubectl apply -n dev -f /IOT/confs/ingress.yaml
 
 echo "\033[36m      ARGOCD_PASSWORD:" ; sudo kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 echo "				GITLAB_PASSWORD:" ; sudo kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -ojsonpath={.data.password} | base64 -d ; echo
 
-echo "Forwarding port "
-sudo kubectl port-forward --address 0.0.0.0 svc/gitlab-webservice-default -n gitlab 8585:8181 | sudo kubectl port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8282:443
+echo "==> Forwarding port "
+    sudo kubectl port-forward --address 0.0.0.0 svc/gitlab-webservice-default -n gitlab 8585:8181 | sudo kubectl port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8282:443 &
+
+password=$(sudo kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -ojsonpath={.data.password} | base64 -d)
+
+cd /IOT/confs
+waiting_repo=1
+echo $waiting_repo
+while [ $waiting_repo != 0 ] ; do
+    git push http://root:${password}@192.168.56.110:8585/root/app-wil42.git
+    waiting_repo=$?
+    echo $waiting_repo
+    sleep 7
+    if [ $waiting_repo != 0 ] ; then
+        echo "Please connect to gitlab at 192.168.56.110:8585 as root and create repo <app-wil42> in namespace <root>"
+    else
+        echo "==> Confs for deployment succesfully pushed on gitlab"
+    fi
+done
+
+sleep 50
+
+echo "==> Apply argo cd conf"
 sudo kubectl apply -n argocd -f /IOT/confs/argocd.yaml
-## sudo kubectl apply -n dev -f /IOT/confs/deployment.yaml
+
+echo "==> You can connect to gitlab 192.168.56.110:8282 as root on your browser"
+echo "==> You can connect to argocd 192.168.56.110:8282 as admin on your browser"

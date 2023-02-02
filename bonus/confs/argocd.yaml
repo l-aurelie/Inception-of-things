@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: gitlab-argocd
+  name: app-wil42-argocd
   namespace: argocd
 spec:
   project: default
@@ -10,7 +10,7 @@ spec:
       prune: true
       selfHeal: true
   source:
-    repoURL: http://192.168.56.110:8585/root/wills_app.git
+    repoURL: http://192.168.56.110:8585/root/app-wil42.git
     targetRevision: HEAD
     path: .
   destination:
