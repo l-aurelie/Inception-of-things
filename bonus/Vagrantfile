@@ -9,7 +9,7 @@ Vagrant.configure("2") do |config|
    config.vm.provider "virtualbox" do |vb|
       vb.customize ["modifyvm", :id, "--memory", 12288]
       vb.customize ["modifyvm", :id, "--cpus", 12]
-      vb.name = machine = "bonus2"
+      vb.name = machine = "bonus"
       end
    end
 

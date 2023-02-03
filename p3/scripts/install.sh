@@ -17,7 +17,7 @@ sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
 sudo rm argocd-linux-amd64
 
 echo "->Create k3d cluster"
-k3d cluster create argocd --api-port 127.0.0.1:6445 --port '8888:80@loadbalancer'
+k3d cluster create argocd --api-port 127.0.0.1:6445 #--port '8888:80@loadbalancer'
 
 
 echo "==> Creating namespaces"
