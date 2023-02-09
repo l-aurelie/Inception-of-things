@@ -11,6 +11,7 @@ Vagrant.configure("2") do |config|
       }
    ]
 
+   # Boucle pour creer chaque machine a partir  des variable du tableau servers
    servers.each do |machine|
       config.vm.define machine[:hostname] do |node|
          node.vm.box = "generic/alpine317"

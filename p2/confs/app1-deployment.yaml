@@ -5,10 +5,12 @@ metadata:
   labels:
     app: app1
 spec:
+  # nombre de replica du pod
   replicas: 1
   selector:
     matchLabels:
-      app: app1 
+      app: app1
+  ### description du pod 
   template:
     metadata:
       labels:
@@ -16,14 +18,19 @@ spec:
     spec:
       containers:
       - name: app1
+        # image de base du container
         image: nginx:1.14.2
         ports:
+        # le port expose par le container (voir dans l'image docker : 80 pour nginx)
         - containerPort: 80
+        # Dossier ou monter le repo dans le container
+        # le de dossier precise dans l'image nginx ou placer tout le contenu du site
         volumeMounts:
         - mountPath: /usr/share/nginx/html
           name: app1-volume
       volumes:
       - name: app1-volume
+        # Path du repo dans l'hote
         hostPath:
           path: /IOT/confs/app-volumes/app1
 
@@ -35,8 +42,11 @@ metadata:
   name: app1-service
 spec:
   selector:
+    #nom du deployment sur lequel appliquer le service
     app: app1
   ports:
     - protocol: TCP
+      # le port du service
       port: 8080
+      # le port expose par le container
       targetPort: 80

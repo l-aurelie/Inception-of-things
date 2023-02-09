@@ -9,13 +9,15 @@ curl -L https://storage.googleapis.com/kubernetes-release/release/v1.25.0/bin/li
 install /tmp/kubectl /usr/local/bin/kubectl
 
 echo "==> Creating k3d cluster"
-k3d cluster create bonus --port 8888:80@loadbalancer
-echo "-> Adding credentials to user"
+## Rend l'app accessible a l'aide du loadBalancer sur le service <porthost>:<portService>, ajouter "type: LoadBalancer" au service
+k3d cluster create bonus --port 8888:8888@loadbalancer
+echo "-> Adding credentials to user" # pour avoir les droits kubectl
 mkdir -p /home/vagrant/.kube && cp /root/.kube/config /home/vagrant/.kube/config && chown vagrant /home/vagrant/.kube/config
 
 echo "### Installing gitlab "
 sudo kubectl create namespace gitlab
 sudo helm repo add gitlab https://charts.gitlab.io/
+## Possible de passer les helm charts en parametre ou comme ici de les mettre dans une fichier yaml
 sudo helm install -f /IOT/confs/gitlab-minimum.yaml -n gitlab gitlab gitlab/gitlab
 
 echo "### Installing argocd "
@@ -37,6 +39,7 @@ echo "\033[36m      ARGOCD_PASSWORD:" ; sudo kubectl -n argocd get secret argocd
 echo "				GITLAB_PASSWORD:" ; sudo kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -ojsonpath={.data.password} | base64 -d ; echo
 
 echo "==> Forwarding port "
+## Port forward les service gitlab et argocd (& en background)
     sudo kubectl port-forward --address 0.0.0.0 svc/gitlab-webservice-default -n gitlab 8585:8181 | sudo kubectl port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8282:443 &
 
 password=$(sudo kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -ojsonpath={.data.password} | base64 -d)
@@ -60,7 +63,7 @@ sleep 50
 
 echo "==> Apply argo cd conf"
 sudo kubectl apply -n argocd -f /IOT/confs/argocd.yaml
-sudo kubectl apply -n gitlab -f /IOT/confs/ingress.yaml
+#sudo kubectl apply -n gitlab -f /IOT/confs/ingress.yaml
 
 echo "==> You can connect to gitlab 192.168.56.110:8585 as root on your browser"
 echo "==> You can connect to argocd 192.168.56.110:8282 as admin on your browser"
